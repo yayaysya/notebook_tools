@@ -67,7 +67,7 @@ class ContentIntegrator:
             links_summary = self._process_links(parsed.links, max_workers)
 
             # 阶段3: 整合并重组文章
-            self._update_progress("重组文章内容...")
+            self._update_progress("重组文章内容,可能会等待1-10s时间...")
             article = self._reorganize_content(
                 parsed,
                 images_desc,
