@@ -12,6 +12,8 @@ import mistune
 class ParsedContent:
     """解析后的内容结构"""
     text_blocks: List[str] = field(default_factory=list)
+    code_blocks: List[str] = field(default_factory=list)  # 代码块
+    tags: List[str] = field(default_factory=list)  # #标签
     images: List[Dict[str, str]] = field(default_factory=list)
     links: List[Dict[str, str]] = field(default_factory=list)
     raw_markdown: str = ""
@@ -47,6 +49,9 @@ class MarkdownParser:
         # 额外使用正则表达式捕获可能遗漏的图片和链接
         self._extract_with_regex(markdown_text, result)
 
+        # 提取 #标签
+        result.tags = self._extract_tags(markdown_text)
+
         # 去重
         result.images = self._deduplicate_items(result.images, key='url')
         result.links = self._deduplicate_items(result.links, key='url')
@@ -76,6 +81,25 @@ class MarkdownParser:
                 text = self._extract_text(token)
                 if text.strip():
                     result.text_blocks.append(text.strip())
+
+            elif token_type == 'block_code':
+                # 提取代码块,保留原始格式
+                code = token.get('raw', '').strip()
+                lang = token.get('info', '')
+                code_block = f"```{lang}\n{code}\n```"
+                result.code_blocks.append(code_block)
+                result.text_blocks.append(code_block)  # 同时加入文本块
+
+            elif token_type == 'block_quote':
+                # 提取引用块
+                text = self._extract_text(token)
+                if text.strip():
+                    quote_block = f"> {text.strip()}"
+                    result.text_blocks.append(quote_block)
+
+            elif token_type == 'thematic_break':
+                # 分隔线
+                result.text_blocks.append("---")
 
             elif token_type == 'image':
                 # 提取图片
@@ -149,6 +173,33 @@ class MarkdownParser:
         # 移除 markdown 语法
         context = re.sub(r'[#*_\[\]()!]', '', context)
         return context[:100]
+
+    def _extract_tags(self, markdown_text: str) -> List[str]:
+        """
+        提取 #标签
+
+        Args:
+            markdown_text: Markdown 文本
+
+        Returns:
+            List[str]: 标签列表(不含 # 符号)
+        """
+        # 匹配 #标签 格式 (支持中英文、数字、下划线)
+        # 确保 # 前面是空白或行首,避免误匹配 Markdown 标题
+        pattern = r'(?:^|[^\w#])(#[\w\u4e00-\u9fa5_]+)'
+        matches = re.findall(pattern, markdown_text, re.MULTILINE)
+
+        # 去除 # 符号并去重(保持顺序)
+        seen = set()
+        unique_tags = []
+        for match in matches:
+            tag = match.lstrip('#')
+            # 排除纯数字(避免误匹配)
+            if tag and not tag.isdigit() and tag not in seen:
+                seen.add(tag)
+                unique_tags.append(tag)
+
+        return unique_tags
 
     @staticmethod
     def _is_webpage_url(url: str) -> bool:

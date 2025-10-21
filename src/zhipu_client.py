@@ -133,7 +133,8 @@ class ZhipuClient:
         self,
         original_text: List[str],
         images_desc: List[Dict[str, str]],
-        links_summary: List[Dict[str, str]]
+        links_summary: List[Dict[str, str]],
+        tags: List[str] = None
     ) -> str:
         """
         使用 GLM-4.6 重组文章
@@ -142,12 +143,13 @@ class ZhipuClient:
             original_text: 原始文本块列表
             images_desc: 图片描述列表 [{"url": "...", "description": "..."}]
             links_summary: 链接总结列表 [{"url": "...", "title": "...", "summary": "..."}]
+            tags: 标签列表 (可选)
 
         Returns:
             str: 重组后的 Markdown 文章
         """
         # 构建提示词
-        prompt = self._build_reorganize_prompt(original_text, images_desc, links_summary)
+        prompt = self._build_reorganize_prompt(original_text, images_desc, links_summary, tags)
 
         try:
             response = self.client.chat.completions.create(
@@ -165,7 +167,9 @@ class ZhipuClient:
 5. 输出 Markdown 格式
 6. 图片格式: ![描述](原始URL)
 7. 链接格式: [标题](原始URL)
-8. 适合公众号发布风格"""
+8. **重要: 保留所有代码块原样,使用 ```language 格式**
+9. **重要: 保留所有引用块(>)、分隔线(---)等特殊格式**
+10. 适合公众号发布风格"""
                     },
                     {
                         "role": "user",
@@ -189,7 +193,8 @@ class ZhipuClient:
         self,
         original_text: List[str],
         images_desc: List[Dict[str, str]],
-        links_summary: List[Dict[str, str]]
+        links_summary: List[Dict[str, str]],
+        tags: List[str] = None
     ) -> str:
         """构建文章重组的提示词"""
 
@@ -219,13 +224,20 @@ class ZhipuClient:
                     f"   内容总结: {link['summary']}\n"
                 )
 
+        # 标签信息
+        if tags:
+            prompt_parts.append("\n## 文章标签\n")
+            prompt_parts.append("标签: " + ", ".join([f"#{tag}" for tag in tags]))
+            prompt_parts.append("\n请在文章末尾添加标签行。\n")
+
         prompt_parts.append("""
 \n请你:
 1. 将这些内容整合成一篇连贯的文章
 2. 在合适的位置插入图片,格式: ![图片描述](图片URL)
 3. 在合适的位置引用链接,格式: [链接标题](链接URL) 或在文末添加"参考链接"部分
-4. 优化语言表达,但不改变核心意思
-5. 输出完整的 Markdown 格式文章
+4. **保留所有代码块、引用块、分隔线等特殊格式,不要修改**
+5. 优化语言表达,但不改变核心意思
+6. 输出完整的 Markdown 格式文章
 """)
 
         return "".join(prompt_parts)

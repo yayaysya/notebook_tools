@@ -69,7 +69,7 @@ class ContentIntegrator:
             # 阶段3: 整合并重组文章
             self._update_progress("重组文章内容...")
             article = self._reorganize_content(
-                parsed.text_blocks,
+                parsed,
                 images_desc,
                 links_summary
             )
@@ -205,15 +205,16 @@ class ContentIntegrator:
 
     def _reorganize_content(
         self,
-        text_blocks: list,
+        parsed: ParsedContent,
         images_desc: list,
         links_summary: list
     ) -> str:
         """使用 AI 重组内容为文章"""
         return self.ai_client.reorganize_article(
-            original_text=text_blocks,
+            original_text=parsed.text_blocks,
             images_desc=images_desc,
-            links_summary=links_summary
+            links_summary=links_summary,
+            tags=parsed.tags
         )
 
     def _update_progress(self, stage: str):
