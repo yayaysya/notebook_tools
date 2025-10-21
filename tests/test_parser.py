@@ -113,6 +113,57 @@ def test():
         self.assertEqual(len(result.tags), 1)
         self.assertEqual(result.tags[0], "真正的标签")
 
+    def test_parse_front_matter(self):
+        """测试 YAML Front Matter"""
+        md = """---
+created: 2025-10-20
+modified: 2025-10-21
+publish: true
+---
+
+# 标题
+内容"""
+        result = self.parser.parse(md)
+        self.assertIsNotNone(result.front_matter)
+        self.assertIn("created", result.front_matter)
+        self.assertIn("2025-10-20", result.front_matter)
+        # Front Matter 不应该出现在文本块中
+        self.assertFalse(any("created:" in block for block in result.text_blocks))
+
+    def test_parse_inline_code(self):
+        """测试行内代码"""
+        md = "使用 `claude --setting` 命令查看配置"
+        result = self.parser.parse(md)
+        self.assertTrue(any("`claude --setting`" in block for block in result.text_blocks))
+
+    def test_front_matter_with_content(self):
+        """测试 Front Matter 与内容结合"""
+        md = """---
+title: 测试文章
+tags: [test, demo]
+---
+
+# 正文标题
+
+使用 `code` 示例
+
+```python
+print("test")
+```
+
+#标签1 #标签2
+"""
+        result = self.parser.parse(md)
+        # Front Matter
+        self.assertIsNotNone(result.front_matter)
+        self.assertIn("title", result.front_matter)
+        # 代码块
+        self.assertEqual(len(result.code_blocks), 1)
+        # 行内代码
+        self.assertTrue(any("`code`" in block for block in result.text_blocks))
+        # 标签
+        self.assertGreaterEqual(len(result.tags), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

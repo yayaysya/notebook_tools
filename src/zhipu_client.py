@@ -134,7 +134,8 @@ class ZhipuClient:
         original_text: List[str],
         images_desc: List[Dict[str, str]],
         links_summary: List[Dict[str, str]],
-        tags: List[str] = None
+        tags: List[str] = None,
+        front_matter: Optional[str] = None
     ) -> str:
         """
         使用 GLM-4.6 重组文章
@@ -144,12 +145,13 @@ class ZhipuClient:
             images_desc: 图片描述列表 [{"url": "...", "description": "..."}]
             links_summary: 链接总结列表 [{"url": "...", "title": "...", "summary": "..."}]
             tags: 标签列表 (可选)
+            front_matter: YAML Front Matter (可选)
 
         Returns:
             str: 重组后的 Markdown 文章
         """
         # 构建提示词
-        prompt = self._build_reorganize_prompt(original_text, images_desc, links_summary, tags)
+        prompt = self._build_reorganize_prompt(original_text, images_desc, links_summary, tags, front_matter)
 
         try:
             response = self.client.chat.completions.create(
@@ -194,14 +196,24 @@ class ZhipuClient:
         original_text: List[str],
         images_desc: List[Dict[str, str]],
         links_summary: List[Dict[str, str]],
-        tags: List[str] = None
+        tags: List[str] = None,
+        front_matter: Optional[str] = None
     ) -> str:
         """构建文章重组的提示词"""
 
         prompt_parts = ["请将以下笔记内容整理成一篇完整的文章:\n"]
 
+        # Front Matter
+        if front_matter:
+            prompt_parts.append("\n## 文章元数据 (YAML Front Matter)\n")
+            prompt_parts.append("```yaml\n")
+            prompt_parts.append(front_matter)
+            prompt_parts.append("\n```\n")
+            prompt_parts.append("**重要: 在输出文章开头必须保留这些元数据,格式为:**\n")
+            prompt_parts.append("```\n---\n<YAML内容>\n---\n```\n")
+
         # 原始文本
-        prompt_parts.append("## 原始笔记内容\n")
+        prompt_parts.append("\n## 原始笔记内容\n")
         for i, text in enumerate(original_text, 1):
             prompt_parts.append(f"{i}. {text}\n")
 

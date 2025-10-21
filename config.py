@@ -21,6 +21,14 @@ class Config:
     MAX_RETRIES: int = 3
 
     # 日志配置
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")  # DEBUG/INFO/WARNING/ERROR
+    LOG_TO_FILE: bool = os.getenv("LOG_TO_FILE", "True").lower() == "true"
+    LOG_DIR: str = os.getenv("LOG_DIR", "logs")
+    LOG_FILE_PREFIX: str = "notebook_tools"
+    LOG_MAX_SIZE_MB: int = int(os.getenv("LOG_MAX_SIZE_MB", "10"))
+    LOG_BACKUP_COUNT: int = int(os.getenv("LOG_BACKUP_COUNT", "5"))
+
+    # DEBUG 配置 (已弃用,使用 LOG_LEVEL)
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
 
     # Jina AI Reader (无需 API Key 的免费服务)

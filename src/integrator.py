@@ -214,7 +214,8 @@ class ContentIntegrator:
             original_text=parsed.text_blocks,
             images_desc=images_desc,
             links_summary=links_summary,
-            tags=parsed.tags
+            tags=parsed.tags,
+            front_matter=parsed.front_matter
         )
 
     def _update_progress(self, stage: str):
