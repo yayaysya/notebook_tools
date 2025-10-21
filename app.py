@@ -3,6 +3,7 @@ Streamlit Web UI
 Markdown 笔记智能整理工具的 Web 界面
 """
 import streamlit as st
+import streamlit.components.v1 as components
 import logging
 from pathlib import Path
 import sys
@@ -46,6 +47,112 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+
+def copy_button(text_to_copy: str, button_text: str = "📋 复制输出内容"):
+    """
+    创建复制按钮组件，样式匹配 Streamlit 原生按钮
+
+    Args:
+        text_to_copy: 要复制的文本内容
+        button_text: 按钮显示文本
+    """
+    # 转义文本中的特殊字符,防止 JavaScript 注入
+    escaped_text = text_to_copy.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$').replace('{', '\\{').replace('}', '\\}')
+
+    component_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }}
+            html, body {{
+                height: 100%;
+                overflow: hidden;
+            }}
+            body {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }}
+            #copyBtn {{
+                background-color: rgb(255, 255, 255);
+                border: 1px solid rgba(49, 51, 63, 0.2);
+                color: rgb(49, 51, 63);
+                padding: 0.25rem 0.75rem;
+                text-align: center;
+                font-size: 1rem;
+                line-height: 1.6;
+                cursor: pointer;
+                border-radius: 0.5rem;
+                width: 100%;
+                min-height: 2.5rem;
+                height: 2.5rem;
+                font-family: 'Source Sans Pro', sans-serif;
+                font-weight: 400;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                vertical-align: middle;
+            }}
+            #copyBtn:hover {{
+                border-color: rgb(255, 75, 75);
+            }}
+        </style>
+    </head>
+    <body>
+        <button onclick="copyToClipboard()" id="copyBtn">
+            {button_text}
+        </button>
+
+        <script>
+        function copyToClipboard() {{
+            const text = `{escaped_text}`;
+            const btn = document.getElementById('copyBtn');
+            const originalText = btn.innerHTML;
+
+            navigator.clipboard.writeText(text).then(function() {{
+                // 显示成功状态
+                btn.innerHTML = '✅ 复制成功!';
+                btn.style.backgroundColor = 'rgb(240, 253, 244)';
+                btn.style.borderColor = 'rgb(134, 239, 172)';
+                btn.style.color = 'rgb(22, 101, 52)';
+
+                // 2秒后恢复原状
+                setTimeout(function() {{
+                    btn.innerHTML = originalText;
+                    btn.style.backgroundColor = 'rgb(255, 255, 255)';
+                    btn.style.borderColor = 'rgba(49, 51, 63, 0.2)';
+                    btn.style.color = 'rgb(49, 51, 63)';
+                }}, 2000);
+            }}).catch(function(err) {{
+                console.error('复制失败:', err);
+                btn.innerHTML = '❌ 复制失败';
+                btn.style.backgroundColor = 'rgb(254, 242, 242)';
+                btn.style.borderColor = 'rgb(252, 165, 165)';
+                btn.style.color = 'rgb(153, 27, 27)';
+
+                setTimeout(function() {{
+                    btn.innerHTML = originalText;
+                    btn.style.backgroundColor = 'rgb(255, 255, 255)';
+                    btn.style.borderColor = 'rgba(49, 51, 63, 0.2)';
+                    btn.style.color = 'rgb(49, 51, 63)';
+                }}, 2000);
+            }});
+        }}
+        </script>
+    </body>
+    </html>
+    """
+    components.html(component_html, height=40)
 
 
 def init_session_state():
@@ -156,7 +263,7 @@ def render_main_content(api_key: str, text_model: str, vision_model: str, max_wo
         # 处理按钮
         st.divider()
 
-        col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 4])
+        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1.2, 1.6, 1.2, 2])
 
         with col_btn1:
             process_btn = st.button(
@@ -167,6 +274,10 @@ def render_main_content(api_key: str, text_model: str, vision_model: str, max_wo
             )
 
         with col_btn2:
+            if st.session_state.processed_content:
+                copy_button(st.session_state.processed_content)
+
+        with col_btn3:
             if st.session_state.processed_content:
                 st.download_button(
                     label="📥 下载结果",
